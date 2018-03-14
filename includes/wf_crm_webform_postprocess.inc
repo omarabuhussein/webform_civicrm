@@ -1174,10 +1174,20 @@ class wf_crm_webform_postprocess extends wf_crm_webform_base {
       // The api won't let us manually set status without this weird param
       $params['skipStatusCal'] = !empty($params['status_id']);
 
-      if (!empty($params['auto_renew'])) {
-        //$contID = $this->ent['contribution'][1]['contribution']['id'];
-        //$recContID = 1;
-        //$params['contribution_recur_id'] = 1;
+      // if the membership is to be auto-renewed, we set its related recurring contribution ID
+      if ($params['auto_renew']) {
+        $contributionID = $this->ent['contribution'][1]['id'];
+        $contribution = wf_civicrm_api('Contribution', 'get',
+          array(
+            'sequential' => 1,
+            'id' => $contributionID,
+            'return' => array('contribution_recur_id'),
+          )
+        );
+
+        if (!empty($contribution['values'][0]['contribution_recur_id'])) {
+          $params['contribution_recur_id'] = $contribution['values'][0]['contribution_recur_id'];
+        }
       }
       unset($params['auto_renew']);
 
@@ -1999,8 +2009,8 @@ class wf_crm_webform_postprocess extends wf_crm_webform_base {
       'financial_type_id' =>  $contributionParams['financial_type_id'],
     );
 
-    if (!empty($this->data['membership'][1]['membership'][1]['auto_renew'])) {
-      //$contributionRecurParams['auto_renew'] = 1;
+    if ($this->data['membership'][1]['membership'][1]['auto_renew']) {
+      $contributionRecurParams['auto_renew'] = 1;
     }
 
     return wf_civicrm_api('ContributionRecur', 'create', $contributionRecurParams);
