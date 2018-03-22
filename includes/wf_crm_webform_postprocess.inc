@@ -1175,10 +1175,11 @@ class wf_crm_webform_postprocess extends wf_crm_webform_base {
       $params['skipStatusCal'] = !empty($params['status_id']);
 
       // if the membership is to be auto-renewed, we set its related recurring contribution ID
+      $installmentsCount = $this->getData('civicrm_1_contribution_1_contribution_installments');
       if ($params['auto_renew']) {
         $contributionID = $this->ent['contribution'][1]['id'];
-        $contribution = wf_civicrm_api('Contribution', 'get',
-          array(
+
+        $contribution = wf_civicrm_api('Contribution', 'get', array(
             'sequential' => 1,
             'id' => $contributionID,
             'return' => array('contribution_recur_id'),
@@ -1949,9 +1950,29 @@ class wf_crm_webform_postprocess extends wf_crm_webform_base {
     $createRecurringContribution = FALSE;
     $installmentsCount = wf_crm_aval($params, 'installments', 1, TRUE);
     $contributionsCount = 1;
-    if ($this->contributionIsPayLater && $installmentsCount > 1) {
-      $contributionsCount = $installmentsCount;
-      $createRecurringContribution = TRUE;
+
+    $autoRenewMembership = FALSE;
+    foreach ($this->data['membership'] as $contactMemberships) {
+      foreach($contactMemberships['membership'] as $membership) {
+        if ($membership['auto_renew']) {
+          $autoRenewMembership = TRUE;
+        }
+      }
+    }
+
+    if ($this->contributionIsPayLater) {
+      if ($autoRenewMembership) {
+        $params['auto_renew'] = 1;
+      }
+
+      if ($installmentsCount > 1) {
+        $contributionsCount = $installmentsCount;
+        $createRecurringContribution = TRUE;
+      }
+      else if ($autoRenewMembership) {
+        $params['installments'] = 'null';
+        $createRecurringContribution = TRUE;
+      }
     }
 
     // Creating Recurring Contribution if needed.
@@ -2007,11 +2028,8 @@ class wf_crm_webform_postprocess extends wf_crm_webform_base {
       'currency' => $contributionParams['currency'],
       'payment_processor_id' => $paymentProcessorId,
       'financial_type_id' =>  $contributionParams['financial_type_id'],
+      'auto_renew' =>  !empty($contributionParams['auto_renew']) ? 1 : 0,
     );
-
-    if ($this->data['membership'][1]['membership'][1]['auto_renew']) {
-      $contributionRecurParams['auto_renew'] = 1;
-    }
 
     return wf_civicrm_api('ContributionRecur', 'create', $contributionRecurParams);
   }

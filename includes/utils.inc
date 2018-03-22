@@ -78,7 +78,7 @@ function wf_crm_field_options($field, $context, $data) {
       $ret = drupal_map_assoc(range(1, 9));
     }
     elseif ($table == 'membership' && $name == 'auto_renew') {
-      $ret = array(1 => t('Yes'), 2 => t('No'));
+      $ret = array(1 => t('Yes'), 0 => t('No'));
     }
     // Aside from the above special cases, most lists can be fetched from api.getoptions
     else {
@@ -1145,7 +1145,7 @@ function wf_crm_get_fields($var = 'fields') {
         'name' => t('Auto-renew Membership?'),
         'type' => 'select',
         'expose_list' => TRUE,
-        'value' => 2,
+        'value' => 0,
       );
     }
     // Add campaign fields
